@@ -1,1 +1,10 @@
-print("Hello world, from client!")
+local CharacterAnimator = require(script.Animator.CharacterAnimator)
+local CameraShakeEffect = require(script.CameraEffect.CameraShakeEffect)
+local InputSystem = require(script.InputSystem.InputSystem)
+local InventoryGui = require(script.Inventory.InventoryGui)
+local SoundServiceClient = require(script.Sound.SoundServiceClient)
+
+CameraShakeEffect.init()
+InventoryGui.init()
+InputSystem.init()
+SoundServiceClient.init()
