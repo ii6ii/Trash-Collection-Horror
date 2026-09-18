@@ -4,28 +4,32 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local InventoryTypes = require(ReplicatedStorage.Shared.Inventroy.InventoryTypes)
+
 local ItemConfig = require(ReplicatedStorage.Shared.Inventroy.ItemConfig)
+
 local Networker = require(ReplicatedStorage.Packages.Networker).client
 
 local player = Players.LocalPlayer
 
 local InventoryGui = {}
 
-local inventoryFrame: Frame
 local slots: { [number]: Frame } = {}
 local selectStrokes: { [number]: UIStroke } = {}
+local slotData: { [number]: InventoryTypes.SlotData } = {}
 
 local networker = Networker.new("Inventory", InventoryGui)
+
 local selectedSlot: number?
 
 local LOCK_TRANSPARENCY = 0.7
+local SLOT_COUNT = 5
 
 local function getGui(): ()
 	local playerGui = player:WaitForChild("PlayerGui")
 	local mainGui = playerGui:WaitForChild("MainGui") :: ScreenGui
 	local bottom = mainGui:WaitForChild("Bottom") :: Frame
 
-	inventoryFrame = bottom:WaitForChild("InventoryFrame"):WaitForChild("Slots") :: Frame
+	local inventoryFrame = bottom:WaitForChild("InventoryFrame"):WaitForChild("Slots") :: Frame
 
 	slots = {
 		[1] = inventoryFrame:WaitForChild("LeftHandFrame") :: Frame,
@@ -49,6 +53,12 @@ local function clearSelection(): ()
 	selectedSlot = nil
 end
 
+local function canSelectSlot(id: number): boolean
+	local data = slotData[id]
+
+	return data ~= nil and not data.isLock
+end
+
 local function selectSlot(id: number): ()
 	clearSelection()
 
@@ -58,7 +68,14 @@ end
 
 local function onSlotPressed(id: number): ()
 	if not selectedSlot then
-		selectSlot(id)
+		if canSelectSlot(id) then
+			selectSlot(id)
+		end
+
+		return
+	end
+
+	if not canSelectSlot(id) then
 		return
 	end
 
@@ -71,7 +88,7 @@ local function onSlotPressed(id: number): ()
 		return
 	end
 
-	networker:fetch("moveItem", fromId, toId)
+	networker:fetch("moveItemFromClient", fromId, toId)
 end
 
 function InventoryGui.init(): ()
@@ -79,20 +96,27 @@ function InventoryGui.init(): ()
 
 	local inputFolder = ReplicatedStorage:WaitForChild("Input"):WaitForChild("Inventory")
 
-	for id = 1, 5 do
+	for id = 1, SLOT_COUNT do
 		local input = inputFolder:WaitForChild(`SelectInput{id}`)
 
 		input.Pressed:Connect(function()
 			onSlotPressed(id)
-			print(id)
 		end)
 	end
+
+	InventoryGui:UpdateGui(table.create(SLOT_COUNT, {
+		type = nil,
+		isLock = false,
+	}))
 end
 
-function InventoryGui:UpdateGui(slotData: { InventoryTypes.SlotData }): ()
-	for id, data in slotData do
+function InventoryGui:UpdateGui(newSlotData: { InventoryTypes.SlotData }): ()
+	slotData = newSlotData
+	for id = 1, SLOT_COUNT do
+		local data = slotData[id]
 		local slot = slots[id]
-		if not slot then
+
+		if not data or not slot then
 			continue
 		end
 
@@ -105,6 +129,7 @@ function InventoryGui:UpdateGui(slotData: { InventoryTypes.SlotData }): ()
 		end
 
 		local config = ItemConfig[data.type]
+
 		if not config then
 			continue
 		end
@@ -112,6 +137,14 @@ function InventoryGui:UpdateGui(slotData: { InventoryTypes.SlotData }): ()
 		icon.Image = config.image
 		icon.ImageTransparency = data.isLock and LOCK_TRANSPARENCY or 0
 	end
+end
+
+function InventoryGui.getSelectedId(): number?
+	return selectedSlot
+end
+
+function InventoryGui.resetSelectedSlot()
+	clearSelection()
 end
 
 return InventoryGui

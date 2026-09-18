@@ -55,7 +55,7 @@ function ItemCollector.collect(self: ItemCollector, cameraCFrame: CFrame): ()
 		return
 	end
 
-	local item = InventoryItemRegistry.get(result.Instance)
+	local item = InventoryItemRegistry.get(result.Instance.Parent)
 	if not item then
 		return
 	end

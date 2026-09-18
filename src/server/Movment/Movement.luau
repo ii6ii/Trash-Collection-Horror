@@ -3,7 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local CameraShakeEffect = require(ServerScriptService.Server.CameraEffect.CameraShakeEffect)
+local CameraController = require(ServerScriptService.Server.Camera.CameraController)
 local InventoryTypes = require(ReplicatedStorage.Shared.Inventroy.InventoryTypes)
 
 local BASE_WALK_SPEED = 16
@@ -11,6 +11,8 @@ local SPEED_LOSS_PER_WEIGHT = 0.05
 local SPRINT_MULTIPLIER = 1.5
 local MAX_SPRINT_WEIGHT = 2
 local CAMERA_SHAKE_WEIGHT = 12
+
+local DISABLED_WALK_SPEED = 0
 
 local Movement = {}
 Movement.__index = Movement
@@ -21,6 +23,7 @@ export type Movement = typeof(setmetatable(
 		baseSpeed: number,
 		totalWeight: number,
 		isSprinting: boolean,
+		isMovementEnabled: boolean,
 	},
 	Movement
 ))
@@ -31,6 +34,7 @@ function Movement.new(player: Player): Movement
 		baseSpeed = BASE_WALK_SPEED,
 		totalWeight = 0,
 		isSprinting = false,
+		isMovementEnabled = true,
 	}, Movement)
 end
 
@@ -47,11 +51,12 @@ function Movement.updateWeight(self: Movement, items: { InventoryTypes.Item }): 
 	if totalWeight > MAX_SPRINT_WEIGHT then
 		self.isSprinting = false
 	end
+
 	if totalWeight >= CAMERA_SHAKE_WEIGHT then
 		print("TRUE STATE")
-		CameraShakeEffect.Start(self.player)
+		CameraController.startShake(self.player)
 	else
-		CameraShakeEffect.Stop(self.player)
+		CameraController.stopShake(self.player)
 	end
 
 	self:updateSpeed()
@@ -68,10 +73,40 @@ function Movement.updateSpeed(self: Movement): ()
 		return
 	end
 
+	if not self.isMovementEnabled then
+		humanoid.WalkSpeed = DISABLED_WALK_SPEED
+		return
+	end
+
 	humanoid.WalkSpeed = self.isSprinting and self.baseSpeed * SPRINT_MULTIPLIER or self.baseSpeed
 end
 
+function Movement.disableMovement(self: Movement): ()
+	if not self.isMovementEnabled then
+		return
+	end
+
+	self.isMovementEnabled = false
+	self.isSprinting = false
+
+	self:updateSpeed()
+end
+
+function Movement.enableMovement(self: Movement): ()
+	if self.isMovementEnabled then
+		return
+	end
+
+	self.isMovementEnabled = true
+
+	self:updateSpeed()
+end
+
 function Movement.startSprint(self: Movement): ()
+	if not self.isMovementEnabled then
+		return
+	end
+
 	if self.totalWeight > MAX_SPRINT_WEIGHT then
 		return
 	end

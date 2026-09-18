@@ -5,17 +5,17 @@ local InventoryTypes = require(ReplicatedStorage.Shared.Inventroy.InventoryTypes
 
 local InventoryItemRegistry = {}
 
-local items: { [BasePart]: InventoryTypes.Item } = {}
+local items: { [Model]: InventoryTypes.Item } = {}
 
-function InventoryItemRegistry.register(instance: BasePart, item: InventoryTypes.Item): ()
+function InventoryItemRegistry.register(instance: Model, item: InventoryTypes.Item): ()
 	items[instance] = item
 end
 
-function InventoryItemRegistry.unregister(instance: BasePart): ()
+function InventoryItemRegistry.unregister(instance: Model): ()
 	items[instance] = nil
 end
 
-function InventoryItemRegistry.get(instance: BasePart): InventoryTypes.Item?
+function InventoryItemRegistry.get(instance: Model): InventoryTypes.Item?
 	return items[instance]
 end
 

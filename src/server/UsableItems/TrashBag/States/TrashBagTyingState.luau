@@ -39,7 +39,7 @@ function TrashBagTyingState.onEnter(self: TrashBagTyingState)
 	TrashBagTyer.getData(self.context).tieFinished:Once(function()
 		self.context:switchState(self.context.allStates.tied)
 	end)
-	TrashBagAnimator.playTieAnimation(self.context.instance)
+	TrashBagAnimator.playTieAnimation(self.context.instance.Model)
 	print("===switched to TYING state===")
 	if not self.context.owner then
 		return
@@ -48,7 +48,7 @@ function TrashBagTyingState.onEnter(self: TrashBagTyingState)
 end
 
 function TrashBagTyingState.onExit(self: TrashBagTyingState)
-	TrashBagAnimator.stop(self.context.instance)
+	TrashBagAnimator.stop(self.context.instance.Model)
 	if not self.soundId then
 		return
 	end

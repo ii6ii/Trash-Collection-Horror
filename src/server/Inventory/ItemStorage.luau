@@ -130,6 +130,16 @@ function ItemStorage.getAllItems(self: ItemStorage): { InventoryTypes.Item }
 	return items
 end
 
+function ItemStorage.getSlotItems(self: ItemStorage): { [number]: InventoryTypes.Item? }
+	local items: { [number]: InventoryTypes.Item? } = {}
+
+	for id = 1, self.capacity do
+		items[id] = self.slots[id]:getItem()
+	end
+
+	return items
+end
+
 function ItemStorage.getSlot(self: ItemStorage, id: number): InventorySlot.InventorySlot
 	return self.slots[id]
 end

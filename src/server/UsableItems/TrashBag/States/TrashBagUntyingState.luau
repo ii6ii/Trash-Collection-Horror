@@ -37,7 +37,7 @@ function TrashBagUntyingState.onEnter(self: TrashBagUntyingState)
 	TrashBagTyer.getData(self.context).untieFinished:Once(function()
 		self.context:switchState(self.context.allStates.withTrash)
 	end)
-	TrashBagAnimator.playTieAnimation(self.context.instance)
+	TrashBagAnimator.playTieAnimation(self.context.instance.Model)
 	print("===switched to UNTYING state===")
 	if not self.context.owner then
 		return
@@ -46,7 +46,7 @@ function TrashBagUntyingState.onEnter(self: TrashBagUntyingState)
 end
 
 function TrashBagUntyingState.onExit(self: TrashBagUntyingState)
-	TrashBagAnimator.stop(self.context.instance)
+	TrashBagAnimator.stop(self.context.instance.Model)
 	if not self.soundId then
 		return
 	end

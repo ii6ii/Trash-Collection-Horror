@@ -13,10 +13,11 @@ local PartUtils = require(ReplicatedStorage.Shared.PartUtils)
 
 local UnpackableTrash = {}
 UnpackableTrash.__index = UnpackableTrash
+UnpackableTrash.allTrash = {}
 
 export type UnpackableTrash = typeof(setmetatable(
 	{} :: {
-		instance: BasePart,
+		instance: Model,
 		owner: Player?,
 		attachment: Attachment?,
 		config: ItemConfig.Config,
@@ -25,7 +26,7 @@ export type UnpackableTrash = typeof(setmetatable(
 	UnpackableTrash
 ))
 
-function UnpackableTrash.new(instance: BasePart, type: string, weight: number): UnpackableTrash
+function UnpackableTrash.new(instance: Model, type: string, weight: number): UnpackableTrash
 	local config = ItemConfig[type]
 
 	assert(config, `Unknown UnpackableTrash type: {type}`)
@@ -41,6 +42,7 @@ function UnpackableTrash.new(instance: BasePart, type: string, weight: number): 
 	InventoryItemRegistry.register(instance, self :: any)
 	UsableItemsRegistry.register(instance, self :: any)
 
+	UnpackableTrash.allTrash[instance] = self
 	return self
 end
 
@@ -78,7 +80,7 @@ function UnpackableTrash.handleInputStart(self: UnpackableTrash, context: InputS
 	end
 
 	Inventory.getPlayerInventory(self.owner):removeItem(self :: any)
-	PartUtils.placeOnGround(self.instance, 1)
+	PartUtils.placeOnGround(self.instance.PrimaryPart :: BasePart, 1)
 end
 
 function UnpackableTrash.handleInputEnd(self: UnpackableTrash, context: InputSystemTypes.InputContext): () end

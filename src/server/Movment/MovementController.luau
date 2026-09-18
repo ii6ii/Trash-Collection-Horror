@@ -1,7 +1,9 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local Networker = require(ReplicatedStorage.Packages.Networker)
 local Movement = require(script.Parent.Movement)
 local InputSystem = require(ServerScriptService.Server.InputSystem.InputSystem)
 
@@ -32,8 +34,26 @@ function MovementController.getMovement(player: Player): Movement.Movement
 	return movements[player]
 end
 
+function MovementController:disableMovement(player: Player): ()
+	local movement = MovementController.getMovement(player)
+
+	movement:disableMovement()
+end
+
+function MovementController:enableMovement(player: Player): ()
+	local movement = MovementController.getMovement(player)
+
+	movement:enableMovement()
+end
+
 function MovementController.destroyPlayer(player: Player): ()
 	movements[player] = nil
 end
+
+Networker.server.new(
+	"Movment",
+	MovementController,
+	{ MovementController.enableMovement, MovementController.disableMovement }
+)
 
 return MovementController

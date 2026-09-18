@@ -31,11 +31,13 @@ local TRASH_SIZE_SCALE = 0.18
 
 local TrashBag = {}
 TrashBag.__index = TrashBag
+TrashBag.allBags = {}
 
-function TrashBag.new(instance: BasePart): TrashBagTypes.TrashBag
+function TrashBag.new(instance: Model): TrashBagTypes.TrashBag
+	local model = instance:FindFirstChild("Model") :: BasePart
 	local self = setmetatable({
 		instance = instance,
-		originalSize = instance.Size,
+		originalSize = model.Size,
 		capacity = CAPACITY,
 		trashInside = 0,
 		tieProgress = 0,
@@ -63,13 +65,16 @@ function TrashBag.new(instance: BasePart): TrashBagTypes.TrashBag
 
 	self:updateSize()
 
+	TrashBag.allBags[instance] = self
+
 	return self :: TrashBagTypes.TrashBag
 end
 
 function TrashBag.updateSize(self: TrashBagTypes.TrashBag): ()
 	local scale = EMPTY_SIZE_SCALE + self.trashInside * TRASH_SIZE_SCALE
 
-	self.instance.Size = Vector3.new(self.originalSize.X * scale, self.originalSize.Y, self.originalSize.Z)
+	local model = self.instance:FindFirstChild("Model") :: BasePart
+	model.Size = Vector3.new(self.originalSize.X * scale, self.originalSize.Y, self.originalSize.Z)
 end
 
 function TrashBag.switchState(self: TrashBagTypes.TrashBag, newState: TrashBagTypes.TrashBagState)

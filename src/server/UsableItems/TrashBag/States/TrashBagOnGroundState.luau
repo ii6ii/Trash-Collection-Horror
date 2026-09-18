@@ -32,7 +32,7 @@ function TrashBagOnGroundState.onEnter(self: TrashBagOnGroundState)
 	end
 	SoundService.Play(self.context.owner, SoundConfig.trashDrop)
 	Inventory.getPlayerInventory(self.context.owner):removeItem(item)
-	PartUtils.placeOnGround(self.context.instance, 1)
+	PartUtils.placeOnGround(self.context.instance.Model, 1)
 end
 
 function TrashBagOnGroundState.onEquipped(self: TrashBagOnGroundState): ()

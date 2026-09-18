@@ -9,7 +9,7 @@ export type ItemData = {
 	size: number,
 	canTakeInHands: boolean,
 	canPutInBackpack: boolean,
-	instance: BasePart,
+	instance: Model,
 	attachment: Attachment?,
 }
 

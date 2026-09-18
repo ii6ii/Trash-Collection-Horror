@@ -12,17 +12,17 @@ export type UsableItem = {
 
 local UsableItemsRegistry = {}
 
-local items: { [BasePart]: UsableItem } = {}
+local items: { [Model]: UsableItem } = {}
 
-function UsableItemsRegistry.register(instance: BasePart, item: UsableItem): ()
+function UsableItemsRegistry.register(instance: Model, item: UsableItem): ()
 	items[instance] = item
 end
 
-function UsableItemsRegistry.unregister(instance: BasePart): ()
+function UsableItemsRegistry.unregister(instance: Model): ()
 	items[instance] = nil
 end
 
-function UsableItemsRegistry.get(instance: BasePart): UsableItem?
+function UsableItemsRegistry.get(instance: Model): UsableItem?
 	return items[instance]
 end
 

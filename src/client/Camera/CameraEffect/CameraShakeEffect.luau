@@ -1,9 +1,6 @@
 --!strict
 
 local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local Networker = require(ReplicatedStorage.Packages.Networker).client
 
 local CameraShakeEffect = {}
 
@@ -18,11 +15,7 @@ local POSITION_OFFSET_X = -0.1
 
 local ROTATION_AMPLITUDE = 0.035
 
-function CameraShakeEffect.init(): ()
-	Networker.new("CameraShakeEffect", CameraShakeEffect)
-end
-
-function CameraShakeEffect:Start(): ()
+function CameraShakeEffect.Start(): ()
 	if connection then
 		return
 	end
@@ -31,6 +24,7 @@ function CameraShakeEffect:Start(): ()
 
 	connection = RunService.RenderStepped:Connect(function(deltaTime: number)
 		local camera = workspace.CurrentCamera
+
 		if not camera then
 			return
 		end
@@ -47,7 +41,7 @@ function CameraShakeEffect:Start(): ()
 	end)
 end
 
-function CameraShakeEffect:Stop(): ()
+function CameraShakeEffect.Stop(): ()
 	if not connection then
 		return
 	end
