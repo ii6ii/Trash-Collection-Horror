@@ -9,18 +9,23 @@ local BinGui = require(script.Parent.BinGui)
 
 local ItemBin = {}
 ItemBin.__index = ItemBin
+
 ItemBin.allBins = {} :: { [Model]: ItemBin }
 
 export type ItemBin = typeof(setmetatable(
 	{} :: {
 		instance: Model,
-		zone: any,
+		zone: any?,
 		cameraPosition: BasePart,
 	},
 	ItemBin
 ))
 
 function ItemBin.new(instance: Model): ItemBin
+	if ItemBin.allBins[instance] then
+		return ItemBin.allBins[instance]
+	end
+
 	local cameraPosition = instance:WaitForChild("CameraPosition") :: BasePart
 	local zonePart = instance:WaitForChild("Zone") :: BasePart
 
@@ -36,6 +41,10 @@ function ItemBin.new(instance: Model): ItemBin
 	end)
 
 	self.zone.localPlayerExited:Connect(function()
+		if BinGui.isCarryingBin() then
+			return
+		end
+
 		BinInteraction.exit()
 		BinGui.hide()
 	end)
@@ -49,8 +58,36 @@ function ItemBin.getInstance(self: ItemBin): Model
 	return self.instance
 end
 
-function ItemBin.destroy(self: ItemBin): ()
+function ItemBin.disable(self: ItemBin): ()
+	if not self.zone then
+		return
+	end
+
 	self.zone:destroy()
+	self.zone = nil
+end
+
+function ItemBin.onPickedUp(binName: string): ()
+	for instance in ItemBin.allBins do
+		if instance.Name == binName then
+			BinInteraction.exit()
+			BinGui.pickUp(instance)
+			return
+		end
+	end
+end
+
+function ItemBin.onFilled(binName: string): ()
+	for instance, bin in ItemBin.allBins do
+		if instance.Name == binName then
+			bin:disable()
+		end
+	end
+end
+
+function ItemBin.destroy(self: ItemBin): ()
+	self:disable()
+	ItemBin.allBins[self.instance] = nil
 end
 
 return ItemBin

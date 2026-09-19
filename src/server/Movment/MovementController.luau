@@ -36,13 +36,11 @@ end
 
 function MovementController:disableMovement(player: Player): ()
 	local movement = MovementController.getMovement(player)
-
 	movement:disableMovement()
 end
 
 function MovementController:enableMovement(player: Player): ()
 	local movement = MovementController.getMovement(player)
-
 	movement:enableMovement()
 end
 
@@ -50,10 +48,9 @@ function MovementController.destroyPlayer(player: Player): ()
 	movements[player] = nil
 end
 
-Networker.server.new(
-	"Movment",
-	MovementController,
-	{ MovementController.enableMovement, MovementController.disableMovement }
-)
+Networker.server.new("Movment", MovementController, {
+	MovementController.enableMovement,
+	MovementController.disableMovement,
+})
 
 return MovementController

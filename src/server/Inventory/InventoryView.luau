@@ -2,9 +2,10 @@
 
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 
-local Networker = require(ReplicatedStorage.Packages.Networker).server
 local InventoryTypes = require(ReplicatedStorage.Shared.Inventroy.InventoryTypes)
+local CharacterAnimator = require(ServerScriptService.Server.Animator.CharacterAnimator)
 
 local ITEM_STORAGE = Instance.new("Folder")
 ITEM_STORAGE.Name = "ItemStorage"
@@ -21,8 +22,6 @@ export type InventoryView = typeof(setmetatable(
 	},
 	InventoryView
 ))
-
-local animatorNetworker = Networker.new("Animator")
 
 local function destroyWeld(item: InventoryTypes.Item): ()
 	local instance = item:getItemData().instance
@@ -98,27 +97,28 @@ function InventoryView.moveToWorkspace(item: InventoryTypes.Item): ()
 end
 
 function InventoryView.updateAnimations(self: InventoryView, itemsInHands: { [number]: InventoryTypes.Item? }): ()
-	animatorNetworker:fire(self.owner, "StopHandAnimations")
+	CharacterAnimator.StopHandAnimations(self.owner)
 
 	local leftItem = itemsInHands[1]
 	local rightItem = itemsInHands[2]
 
 	if leftItem then
-		animatorNetworker:fire(self.owner, "HoldLeftHand")
+		CharacterAnimator.HoldLeftHand(self.owner)
 
 		if leftItem:getItemData().size >= 2 then
-			animatorNetworker:fire(self.owner, "HoldRightHand")
+			CharacterAnimator.HoldRightHand(self.owner)
 		end
 	end
 
 	if rightItem then
-		animatorNetworker:fire(self.owner, "HoldRightHand")
+		CharacterAnimator.HoldRightHand(self.owner)
 
 		if rightItem:getItemData().size >= 2 then
-			animatorNetworker:fire(self.owner, "HoldLeftHand")
+			CharacterAnimator.HoldLeftHand(self.owner)
 		end
 	end
 end
+
 function InventoryView.destroy(self: InventoryView) end
 
 return InventoryView

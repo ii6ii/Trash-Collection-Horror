@@ -12,11 +12,13 @@ local BinController = {}
 local TRASH_BIN_TAG = "TrashBin"
 local UNPACKABLE_BIN_TAG = "UnpackableItemsBin"
 
+local AMOUNT_ATTRIBUTE = "OpenAmount"
+
 local function createUnpackBin(instance: ItemBin.BinModel)
 	if not instance:IsA("Model") then
 		return
 	end
-	local bin = UnpackableItemsBin.new(instance, 10)
+	local bin = UnpackableItemsBin.new(instance, instance:GetAttribute(AMOUNT_ATTRIBUTE) :: number)
 	BinRegistry.Register(instance, bin)
 end
 
@@ -24,7 +26,7 @@ local function createTrashBin(instance: ItemBin.BinModel)
 	if not instance:IsA("Model") then
 		return
 	end
-	local bin = TrashBin.new(instance, 10)
+	local bin = TrashBin.new(instance, instance:GetAttribute(AMOUNT_ATTRIBUTE) :: number)
 	BinRegistry.Register(instance, bin)
 end
 

@@ -9,6 +9,8 @@ local InventoryTypes = require(ReplicatedStorage.Shared.Inventroy.InventoryTypes
 local BASE_WALK_SPEED = 16
 local SPEED_LOSS_PER_WEIGHT = 0.05
 local SPRINT_MULTIPLIER = 1.5
+local BIN_SPEED_MULTIPLIER = 0.4
+
 local MAX_SPRINT_WEIGHT = 2
 local CAMERA_SHAKE_WEIGHT = 12
 
@@ -24,6 +26,7 @@ export type Movement = typeof(setmetatable(
 		totalWeight: number,
 		isSprinting: boolean,
 		isMovementEnabled: boolean,
+		hasBin: boolean,
 	},
 	Movement
 ))
@@ -35,6 +38,7 @@ function Movement.new(player: Player): Movement
 		totalWeight = 0,
 		isSprinting = false,
 		isMovementEnabled = true,
+		hasBin = false,
 	}, Movement)
 end
 
@@ -53,7 +57,6 @@ function Movement.updateWeight(self: Movement, items: { InventoryTypes.Item }): 
 	end
 
 	if totalWeight >= CAMERA_SHAKE_WEIGHT then
-		print("TRUE STATE")
 		CameraController.startShake(self.player)
 	else
 		CameraController.stopShake(self.player)
@@ -78,7 +81,27 @@ function Movement.updateSpeed(self: Movement): ()
 		return
 	end
 
-	humanoid.WalkSpeed = self.isSprinting and self.baseSpeed * SPRINT_MULTIPLIER or self.baseSpeed
+	local speed = self.baseSpeed
+
+	if self.isSprinting then
+		speed *= SPRINT_MULTIPLIER
+	end
+
+	if self.hasBin then
+		speed *= BIN_SPEED_MULTIPLIER
+	end
+
+	humanoid.WalkSpeed = speed
+end
+
+function Movement.setBin(self: Movement, hasBin: boolean): ()
+	self.hasBin = hasBin
+
+	if hasBin then
+		self.isSprinting = false
+	end
+
+	self:updateSpeed()
 end
 
 function Movement.disableMovement(self: Movement): ()
@@ -104,6 +127,11 @@ end
 
 function Movement.startSprint(self: Movement): ()
 	if not self.isMovementEnabled then
+		return
+	end
+
+	-- С Bin спринт запрещён.
+	if self.hasBin then
 		return
 	end
 

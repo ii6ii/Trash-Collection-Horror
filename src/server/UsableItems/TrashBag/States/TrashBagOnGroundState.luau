@@ -24,15 +24,23 @@ function TrashBagOnGroundState.new(trashBag: TrashBagTypes.TrashBag): TrashBagTy
 	return setmetatable(self, TrashBagOnGroundState)
 end
 
-function TrashBagOnGroundState.onEnter(self: TrashBagOnGroundState)
+function TrashBagOnGroundState.onEnter(self): ()
 	print("===switched to GROUND state===")
+
 	local item = InventoryItemRegistry.get(self.context.instance) :: InventoryTypes.Item
+
 	if not self.context.owner then
 		return
 	end
+
+	if not PartUtils.CanPlace(self.context.instance.Model, 1) then
+		return
+	end
+
 	SoundService.Play(self.context.owner, SoundConfig.trashDrop)
+
 	Inventory.getPlayerInventory(self.context.owner):removeItem(item)
-	PartUtils.placeOnGround(self.context.instance.Model, 1)
+	local state = PartUtils.placeOnGround(self.context.instance.Model, 1)
 end
 
 function TrashBagOnGroundState.onEquipped(self: TrashBagOnGroundState): ()

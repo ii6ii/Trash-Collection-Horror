@@ -2,22 +2,24 @@
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local Debris = game:GetService("Debris")
+local ContextActionService = game:GetService("ContextActionService")
 
 local BinInteraction = require(script.Parent.BinInteraction)
 local InventoryGui = require(script.Parent.Parent.Inventory.InventoryGui)
 local BinNetworker = require(script.Parent.BinNetworker)
 
 local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
 
 local BinGui = {}
 
 local currentBin: Model?
+local carryingBin = false
+local droppingBin = false
 
 local MAX_RAY_DISTANCE = 1000
-local HIT_PART_SIZE = 0.25
-local HIT_PART_LIFETIME = 2
+
+local DROP_BIN_ACTION = "DropBinOnJump"
+local DROP_BIN_PRIORITY = 3000
 
 local playerGui = player:WaitForChild("PlayerGui")
 local mainGui = playerGui:WaitForChild("MainGui") :: ScreenGui
@@ -27,66 +29,206 @@ local gui = mainGui:WaitForChild("Bottom"):WaitForChild("BinGui") :: Frame
 local putButton = gui:WaitForChild("PutButton") :: ImageButton
 local closeButton = gui:WaitForChild("CloseButton") :: ImageButton
 
+local function setJumpEnabled(enabled: boolean): ()
+	local character = player.Character
+	if not character then
+		return
+	end
+
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return
+	end
+
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, enabled)
+
+	if not enabled then
+		humanoid.Jump = false
+	end
+end
+
 local function raycastFromScreenPosition(screenPosition: Vector2): RaycastResult?
+	local camera = workspace.CurrentCamera
+
+	if not camera then
+		return nil
+	end
+
 	local ray = camera:ScreenPointToRay(screenPosition.X, screenPosition.Y)
 
 	return workspace:Raycast(ray.Origin, ray.Direction * MAX_RAY_DISTANCE)
 end
 
-local function spawnHitPart(position: Vector3): ()
-	local part = Instance.new("Part")
+local function finishDrop(): ()
+	droppingBin = false
 
-	part.Name = "RaycastHit"
-	part.Size = Vector3.new(HIT_PART_SIZE, HIT_PART_SIZE, HIT_PART_SIZE)
+	ContextActionService:UnbindAction(DROP_BIN_ACTION)
 
-	part.CFrame = CFrame.new(position)
+	local character = player.Character
 
-	part.Anchored = true
-	part.CanCollide = false
-	part.CanTouch = false
-	part.CanQuery = false
+	if character then
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
 
-	part.Parent = workspace
+		if humanoid then
+			-- На всякий случай поглощаем оставшийся Jump.
+			humanoid.Jump = false
 
-	Debris:AddItem(part, HIT_PART_LIFETIME)
+			-- Возвращаем обычный прыжок только после
+			-- завершения первого нажатия.
+			humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+		end
+	end
+end
+
+local function dropBin(): ()
+	if not carryingBin or droppingBin then
+		return
+	end
+
+	local bin = currentBin
+
+	if not bin then
+		return
+	end
+
+	droppingBin = true
+	carryingBin = false
+	currentBin = nil
+
+	-- Сервер отпускает физический Bin.
+	BinNetworker.dropBin(bin)
+
+	-- GUI сразу возвращаем в обычное состояние.
+	putButton.Visible = true
+	closeButton.Visible = true
+	gui.Visible = false
+
+	BinInteraction.exit()
+
+	-- ВАЖНО:
+	-- Jumping пока НЕ включаем.
+	-- Текущее нажатие должно полностью закончиться.
+end
+
+local function onDropBinAction(
+	_actionName: string,
+	inputState: Enum.UserInputState,
+	_inputObject: InputObject
+): Enum.ContextActionResult
+	if not carryingBin and not droppingBin then
+		return Enum.ContextActionResult.Pass
+	end
+
+	if inputState == Enum.UserInputState.Begin then
+		if carryingBin then
+			dropBin()
+		end
+
+		-- Поглощаем первое нажатие.
+		return Enum.ContextActionResult.Sink
+	end
+
+	if inputState == Enum.UserInputState.End or inputState == Enum.UserInputState.Cancel then
+		if droppingBin then
+			finishDrop()
+		end
+
+		return Enum.ContextActionResult.Sink
+	end
+
+	return Enum.ContextActionResult.Sink
 end
 
 function BinGui.show(bin: Model): ()
 	currentBin = bin
+	carryingBin = false
+	droppingBin = false
+
+	putButton.Visible = true
+	closeButton.Visible = true
+
 	gui.Visible = true
+end
+
+function BinGui.pickUp(bin: Model): ()
+	currentBin = bin
+	carryingBin = true
+	droppingBin = false
+
+	putButton.Visible = false
+	closeButton.Visible = false
+
+	gui.Visible = true
+
+	setJumpEnabled(false)
+
+	ContextActionService:UnbindAction(DROP_BIN_ACTION)
+
+	ContextActionService:BindActionAtPriority(
+		DROP_BIN_ACTION,
+		onDropBinAction,
+		false,
+		DROP_BIN_PRIORITY,
+		Enum.PlayerActions.CharacterJump
+	)
+end
+
+function BinGui.hide(): ()
+	ContextActionService:UnbindAction(DROP_BIN_ACTION)
+
+	currentBin = nil
+	carryingBin = false
+	droppingBin = false
+
+	putButton.Visible = true
+	closeButton.Visible = true
+
+	setJumpEnabled(true)
+
+	gui.Visible = false
+end
+
+function BinGui.isCarryingBin(): boolean
+	return carryingBin
 end
 
 function BinGui.getCurrentBin(): Model?
 	return currentBin
 end
 
-function BinGui.hide(): ()
-	currentBin = nil
-	gui.Visible = false
-end
-
 function BinGui.init(): ()
 	putButton.MouseButton1Click:Connect(function()
-		local selectedSlot = InventoryGui.getSelectedId()
-
-		print("PUT PRESSED", currentBin, selectedSlot)
-
-		if not currentBin or not selectedSlot then
+		if carryingBin then
 			return
 		end
 
-		BinNetworker.putItemInBin(currentBin, selectedSlot)
+		local bin = currentBin
+		local selectedSlot = InventoryGui.getSelectedId()
+
+		if not bin or not selectedSlot then
+			return
+		end
+
+		BinNetworker.putItemInBin(bin, selectedSlot)
 
 		InventoryGui.resetSelectedSlot()
 	end)
 
 	closeButton.MouseButton1Click:Connect(function()
+		if carryingBin then
+			return
+		end
+
 		BinInteraction.exit()
 		BinGui.hide()
 	end)
 
 	UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessedEvent: boolean)
 		if gameProcessedEvent then
+			return
+		end
+
+		if carryingBin or droppingBin then
 			return
 		end
 
@@ -97,7 +239,9 @@ function BinGui.init(): ()
 			return
 		end
 
-		if not currentBin then
+		local bin = currentBin
+
+		if not bin then
 			return
 		end
 
@@ -107,22 +251,13 @@ function BinGui.init(): ()
 			return
 		end
 
-		print("BIN CLICK HIT:", result.Instance:GetFullName())
-
-		print("HIT POSITION:", result.Position)
-
-		-- Тестовая точка попадания
-		--spawnHitPart(result.Position)
-
-		-- Пока передаём Parent объекта,
-		-- как у тебя было раньше.
 		local itemInstance = result.Instance.Parent
 
 		if not itemInstance then
 			return
 		end
 
-		BinNetworker.takeItemFromBin(currentBin, itemInstance)
+		BinNetworker.takeItemFromBin(bin, itemInstance)
 	end)
 
 	BinGui.hide()

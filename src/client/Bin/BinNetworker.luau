@@ -16,4 +16,24 @@ function BinNetworker.takeItemFromBin(bin: Model, itemInstance: Instance): ()
 	networker:fetch("takeItemFromBin", bin, itemInstance)
 end
 
+function BinNetworker.dropBin(bin: Model): ()
+	networker:fetch("dropBin", bin)
+end
+
+function BinNetworker:binPickedUp(binName: string): ()
+	print("BIN PICKED UP:", binName)
+
+	local bin = require(script.Parent.ItemBin)
+
+	bin.onPickedUp(binName)
+end
+
+function BinNetworker:binFilled(binName: string): ()
+	print("BIN FILLED:", binName)
+
+	local bin = require(script.Parent.ItemBin)
+
+	bin.onFilled(binName)
+end
+
 return BinNetworker

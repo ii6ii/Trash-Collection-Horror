@@ -24,17 +24,9 @@ local humanoid: Humanoid?
 local head: BasePart?
 local humanoidRootPart: BasePart?
 
-local inputConnection: RBXScriptConnection?
 local enabled = false
 
 local cameraRotation = Vector2.zero
-
-local function disconnectInput(): ()
-	if inputConnection then
-		inputConnection:Disconnect()
-		inputConnection = nil
-	end
-end
 
 local function setCharacterTransparency(newCharacter: Model): ()
 	for _, descendant in newCharacter:GetDescendants() do
@@ -80,33 +72,23 @@ local function updateCamera(): ()
 		return
 	end
 
+	-- Получаем движение мыши напрямую.
+	-- Это не зависит от того, находится ли мышь над GUI.
+	local mouseDelta = UserInputService:GetMouseDelta()
+
+	if mouseDelta.Magnitude > 0 then
+		cameraRotation = Vector2.new(
+			math.clamp(cameraRotation.X - mouseDelta.Y * SENSITIVITY, MIN_PITCH, MAX_PITCH),
+			cameraRotation.Y - mouseDelta.X * SENSITIVITY
+		)
+	end
+
 	CAMERA.CFrame = CFrame.new(currentHead.Position)
 		* CFrame.Angles(0, cameraRotation.Y, 0)
 		* CFrame.Angles(cameraRotation.X, 0, 0)
 		* CFrame.new(CAMERA_OFFSET)
 
 	currentRootPart.CFrame = CFrame.new(currentRootPart.Position) * CFrame.Angles(0, cameraRotation.Y, 0)
-end
-
-local function setupInput(): ()
-	disconnectInput()
-
-	inputConnection = UserInputService.InputChanged:Connect(function(input: InputObject, gameProcessed: boolean)
-		if gameProcessed then
-			return
-		end
-
-		if input.UserInputType ~= Enum.UserInputType.MouseMovement then
-			return
-		end
-
-		local delta = input.Delta
-
-		cameraRotation = Vector2.new(
-			math.clamp(cameraRotation.X - delta.Y * SENSITIVITY, MIN_PITCH, MAX_PITCH),
-			cameraRotation.Y - delta.X * SENSITIVITY
-		)
-	end)
 end
 
 function FirstPersonCamera.init(newCharacter: Model): ()
@@ -139,7 +121,11 @@ function FirstPersonCamera.enable(): ()
 	-- куда сейчас смотрит HumanoidRootPart.
 	cameraRotation = Vector2.new(0, getRootYaw())
 
-	setupInput()
+	-- ВАЖНО:
+	-- блокируем курсор в центре экрана.
+	-- GUI при этом всё равно может получать клики.
+	UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+	UserInputService.MouseIconEnabled = true
 
 	RunService:BindToRenderStep(RENDER_NAME, Enum.RenderPriority.Camera.Value, updateCamera)
 end
@@ -152,7 +138,8 @@ function FirstPersonCamera.disable(): ()
 	enabled = false
 
 	RunService:UnbindFromRenderStep(RENDER_NAME)
-	disconnectInput()
+
+	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 
 	local currentHumanoid = humanoid
 

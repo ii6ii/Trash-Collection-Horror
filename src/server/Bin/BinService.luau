@@ -12,9 +12,11 @@ local Networker = require(ReplicatedStorage.Packages.Networker).server
 
 local BinService = {}
 
+local networker: any
+
 function BinService.init() end
 
-function BinService:putItemInBin(player: Player, binInstance: Instance, inventorySlot: number)
+function BinService:putItemInBin(player: Player, binInstance: Instance, inventorySlot: number): ()
 	local bin = BinRegistry.Get(binInstance) :: ItemBin.ItemBin?
 
 	if not bin then
@@ -33,31 +35,50 @@ function BinService:putItemInBin(player: Player, binInstance: Instance, inventor
 		return
 	end
 
-	bin:addItem(player, item)
+	local added = bin:addItem(player, item)
+
+	if added and bin:isFull() then
+		print("SERVER: BIN FILLED", binInstance.Name)
+
+		networker:fire(player, "binFilled", binInstance.Name)
+	end
 end
 
-function BinService:takeItemFromBin(player: Player, binInstance: Instance, itemInstance: Instance)
+function BinService:takeItemFromBin(player: Player, binInstance: Instance, itemInstance: Instance): ()
 	local bin = BinRegistry.Get(binInstance) :: ItemBin.ItemBin?
 
 	if not bin then
 		return
 	end
 
-	local items = bin:getItems()
-
-	for _, item in items do
-		local itemData = item:getItemData()
-
-		if itemData.instance == itemInstance then
+	for _, item in bin:getItems() do
+		if item:getItemData().instance == itemInstance then
 			bin:removeItem(player, item)
 			return
 		end
 	end
 end
 
-local networker = Networker.new("BinService", BinService, {
+function BinService:dropBin(player: Player, binInstance: Instance): ()
+	local bin = BinRegistry.Get(binInstance) :: ItemBin.ItemBin?
+
+	if not bin then
+		return
+	end
+
+	bin:drop(player)
+end
+
+networker = Networker.new("BinService", BinService, {
 	BinService.putItemInBin,
 	BinService.takeItemFromBin,
+	BinService.dropBin,
 })
+
+BinRegistry.SetPickupCallback(function(player: Player, bin: Model)
+	print("SERVER: BIN PICKED UP", bin.Name)
+
+	networker:fire(player, "binPickedUp", bin.Name)
+end)
 
 return BinService

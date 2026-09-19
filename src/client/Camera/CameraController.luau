@@ -15,9 +15,18 @@ local CAMERA = workspace.CurrentCamera
 
 local ATTACHED_CAMERA_RENDER_NAME = "AttachedCamera"
 
+local ATTACH_DURATION = 0.45
+local DETACH_DURATION = 0.35
+
+local ATTACH_START_OFFSET = Vector3.new(0, -2.5, 5)
+local ATTACH_ARC_HEIGHT = 0.8
+local ATTACH_START_ROTATION = Vector3.new(20, 0, 0)
+
 local CameraController = {}
 
 local attachedPart: BasePart?
+local isDetaching = false
+local transitionId = 0
 
 Networker.new("CameraController", CameraController)
 
@@ -31,12 +40,49 @@ local function unlockCursor(): ()
 	UserInputService.MouseIconEnabled = true
 end
 
+local function easeInOut(alpha: number): number
+	return alpha * alpha * (3 - 2 * alpha)
+end
+
+local function getStartCFrame(part: BasePart): CFrame
+	return part.CFrame
+		* CFrame.new(ATTACH_START_OFFSET)
+		* CFrame.Angles(
+			math.rad(ATTACH_START_ROTATION.X),
+			math.rad(ATTACH_START_ROTATION.Y),
+			math.rad(ATTACH_START_ROTATION.Z)
+		)
+end
+
+local function getArcCFrame(part: BasePart): CFrame
+	return part.CFrame * CFrame.new(0, ATTACH_START_OFFSET.Y + ATTACH_ARC_HEIGHT, ATTACH_START_OFFSET.Z * 0.5)
+end
+
+local function unbindCamera(): ()
+	RunService:UnbindFromRenderStep(ATTACHED_CAMERA_RENDER_NAME)
+end
+
+local function enableFirstPersonInternal(): ()
+	isDetaching = false
+
+	CAMERA.CameraType = Enum.CameraType.Scriptable
+
+	FirstPersonCamera.enable()
+
+	lockCursor()
+end
+
 function CameraController.init(character: Model): ()
 	FirstPersonCamera.init(character)
 end
 
 function CameraController.enableFirstPerson(): ()
-	CameraController.detach()
+	transitionId += 1
+	isDetaching = false
+
+	unbindCamera()
+
+	attachedPart = nil
 
 	CAMERA.CameraType = Enum.CameraType.Scriptable
 
@@ -46,13 +92,24 @@ function CameraController.enableFirstPerson(): ()
 end
 
 function CameraController.disableFirstPerson(): ()
+	transitionId += 1
+	isDetaching = false
+
 	FirstPersonCamera.disable()
 
 	unlockCursor()
 end
 
 function CameraController.attach(part: BasePart): ()
-	CameraController.disableFirstPerson()
+	transitionId += 1
+
+	local currentTransition = transitionId
+
+	isDetaching = false
+
+	unbindCamera()
+
+	FirstPersonCamera.disable()
 
 	attachedPart = part
 
@@ -60,23 +117,129 @@ function CameraController.attach(part: BasePart): ()
 
 	unlockCursor()
 
-	RunService:BindToRenderStep(ATTACHED_CAMERA_RENDER_NAME, Enum.RenderPriority.Camera.Value + 1, function()
-		local currentPart = attachedPart
+	local targetCFrame = part.CFrame
+	local startCFrame = getStartCFrame(part)
+	local arcCFrame = getArcCFrame(part)
 
-		if not currentPart or not currentPart.Parent then
-			return
+	local startPosition = startCFrame.Position
+	local arcPosition = arcCFrame.Position
+	local targetPosition = targetCFrame.Position
+
+	local elapsed = 0
+
+	CAMERA.CFrame = startCFrame
+
+	RunService:BindToRenderStep(
+		ATTACHED_CAMERA_RENDER_NAME,
+		Enum.RenderPriority.Camera.Value + 1,
+		function(deltaTime: number)
+			if currentTransition ~= transitionId then
+				return
+			end
+
+			local currentPart = attachedPart
+
+			if not currentPart or not currentPart.Parent then
+				unbindCamera()
+				return
+			end
+
+			elapsed += deltaTime
+
+			local alpha = math.clamp(elapsed / ATTACH_DURATION, 0, 1)
+
+			local eased = easeInOut(alpha)
+			local inverse = 1 - eased
+
+			local position = startPosition * (inverse * inverse)
+				+ arcPosition * (2 * inverse * eased)
+				+ targetPosition * (eased * eased)
+
+			local rotation = startCFrame:Lerp(targetCFrame, eased).Rotation
+
+			CAMERA.CFrame = CFrame.new(position) * rotation
+
+			if alpha >= 1 then
+				CAMERA.CFrame = targetCFrame
+
+				unbindCamera()
+			end
 		end
-
-		CAMERA.CFrame = currentPart.CFrame
-	end)
+	)
 end
 
 function CameraController.detach(): ()
-	attachedPart = nil
+	if isDetaching then
+		return
+	end
 
-	RunService:UnbindFromRenderStep(ATTACHED_CAMERA_RENDER_NAME)
+	local part = attachedPart
 
-	unlockCursor()
+	if not part or not part.Parent then
+		return
+	end
+
+	isDetaching = true
+
+	transitionId += 1
+
+	local currentTransition = transitionId
+
+	unbindCamera()
+
+	CAMERA.CameraType = Enum.CameraType.Scriptable
+
+	-- Текущая позиция камеры.
+	local startCFrame = CAMERA.CFrame
+
+	-- Финальная точка выхода:
+	-- та самая точка, откуда камера входила.
+	local targetCFrame = getStartCFrame(part)
+	local arcCFrame = getArcCFrame(part)
+
+	local startPosition = startCFrame.Position
+	local arcPosition = arcCFrame.Position
+	local targetPosition = targetCFrame.Position
+
+	local elapsed = 0
+
+	RunService:BindToRenderStep(
+		ATTACHED_CAMERA_RENDER_NAME,
+		Enum.RenderPriority.Camera.Value + 1,
+		function(deltaTime: number)
+			if currentTransition ~= transitionId then
+				return
+			end
+
+			elapsed += deltaTime
+
+			local alpha = math.clamp(elapsed / DETACH_DURATION, 0, 1)
+
+			local eased = easeInOut(alpha)
+			local inverse = 1 - eased
+
+			local position = startPosition * (inverse * inverse)
+				+ arcPosition * (2 * inverse * eased)
+				+ targetPosition * (eased * eased)
+
+			local rotation = startCFrame:Lerp(targetCFrame, eased).Rotation
+
+			CAMERA.CFrame = CFrame.new(position) * rotation
+
+			if alpha >= 1 then
+				CAMERA.CFrame = targetCFrame
+
+				unbindCamera()
+
+				attachedPart = nil
+				isDetaching = false
+
+				-- ВОТ ЗДЕСЬ, И ТОЛЬКО ЗДЕСЬ,
+				-- включается FirstPerson.
+				enableFirstPersonInternal()
+			end
+		end
+	)
 end
 
 function CameraController.startShake(): ()
@@ -88,9 +251,15 @@ function CameraController.stopShake(): ()
 end
 
 function CameraController.disable(): ()
-	CameraController.detach()
-	CameraController.disableFirstPerson()
-	CameraController.stopShake()
+	transitionId += 1
+	isDetaching = false
+
+	unbindCamera()
+
+	attachedPart = nil
+
+	FirstPersonCamera.disable()
+	CameraShakeEffect.Stop()
 
 	CAMERA.CameraType = Enum.CameraType.Custom
 
