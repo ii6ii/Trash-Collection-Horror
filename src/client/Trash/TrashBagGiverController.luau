@@ -34,12 +34,16 @@ local function getGui(): BillboardGui?
 	local gui = playerGui:FindFirstChild("BillboardGui")
 
 	if not gui then
+		print("No Gui")
+
 		return nil
 	end
 
 	if not gui:IsA("BillboardGui") then
 		return nil
 	end
+
+	print("GET GUI")
 
 	return gui
 end

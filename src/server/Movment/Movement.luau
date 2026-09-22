@@ -27,6 +27,7 @@ export type Movement = typeof(setmetatable(
 		isSprinting: boolean,
 		isMovementEnabled: boolean,
 		hasBin: boolean,
+		isBinOpen: boolean,
 	},
 	Movement
 ))
@@ -39,7 +40,21 @@ function Movement.new(player: Player): Movement
 		isSprinting = false,
 		isMovementEnabled = true,
 		hasBin = false,
+		isBinOpen = false,
 	}, Movement)
+end
+
+function Movement.updateCameraShake(self: Movement): ()
+	if self.isBinOpen then
+		CameraController.stopShake(self.player)
+		return
+	end
+
+	if self.totalWeight >= CAMERA_SHAKE_WEIGHT then
+		CameraController.startShake(self.player)
+	else
+		CameraController.stopShake(self.player)
+	end
 end
 
 function Movement.updateWeight(self: Movement, items: { InventoryTypes.Item }): ()
@@ -56,12 +71,7 @@ function Movement.updateWeight(self: Movement, items: { InventoryTypes.Item }): 
 		self.isSprinting = false
 	end
 
-	if totalWeight >= CAMERA_SHAKE_WEIGHT then
-		CameraController.startShake(self.player)
-	else
-		CameraController.stopShake(self.player)
-	end
-
+	self:updateCameraShake()
 	self:updateSpeed()
 end
 
@@ -102,6 +112,12 @@ function Movement.setBin(self: Movement, hasBin: boolean): ()
 	end
 
 	self:updateSpeed()
+end
+
+function Movement.setBinOpen(self: Movement, isOpen: boolean): ()
+	self.isBinOpen = isOpen
+
+	self:updateCameraShake()
 end
 
 function Movement.disableMovement(self: Movement): ()

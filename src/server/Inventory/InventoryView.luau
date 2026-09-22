@@ -45,9 +45,14 @@ function InventoryView.equipItem(self: InventoryView, item: InventoryTypes.Item,
 	end
 
 	local handName = slotId == 1 and "LeftHand" or "RightHand"
+	local hrp = character:FindFirstChild("HumanoidRootPart")
 	local hand = character:FindFirstChild(handName)
 
 	if not hand or not hand:IsA("BasePart") then
+		return false
+	end
+
+	if not hrp or not hrp:IsA("BasePart") then
 		return false
 	end
 

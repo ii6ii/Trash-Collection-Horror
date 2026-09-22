@@ -12,11 +12,15 @@ local networker = Networker.new("Movment", BinInteraction)
 
 function BinInteraction.enter(cameraPosition: BasePart): ()
 	CameraController.attach(cameraPosition)
+
+	networker:fire("setBinOpen", true)
 	networker:fire("disableMovement")
 end
 
 function BinInteraction.exit(): ()
 	CameraController.detach()
+
+	networker:fire("setBinOpen", false)
 	networker:fire("enableMovement")
 end
 

@@ -20,7 +20,7 @@ dependencies = [["Promise", "evaera/promise@4.0.0"]]
 [[package]]
 name = "ivans/trash-collection-horror"
 version = "0.1.0"
-dependencies = [["DataServiceTyped", "leifstout/dataservicetyped@1.0.5"], ["GoodSignal", "stravant/goodsignal@0.3.1"], ["Janitor", "howmanysmall/janitor@1.18.3"], ["Networker", "leifstout/networker@0.3.1"], ["Promise", "evaera/promise@4.0.0"], ["Ripple", "littensy/ripple@0.10.2"], ["ZonePlus", "mattschrubb/zoneplus@3.2.0"]]
+dependencies = [["DataServiceTyped", "leifstout/dataservicetyped@1.0.5"], ["GoodSignal", "stravant/goodsignal@0.3.1"], ["Janitor", "howmanysmall/janitor@1.18.3"], ["Networker", "leifstout/networker@0.3.1"], ["Promise", "evaera/promise@4.0.0"], ["Ripple", "littensy/ripple@0.10.2"], ["TestEz", "roblox/testez@0.4.1"], ["ZonePlus", "mattschrubb/zoneplus@3.2.0"]]
 
 [[package]]
 name = "leifstout/dataservicetyped"
@@ -45,6 +45,11 @@ dependencies = []
 [[package]]
 name = "mattschrubb/zoneplus"
 version = "3.2.0"
+dependencies = []
+
+[[package]]
+name = "roblox/testez"
+version = "0.4.1"
 dependencies = []
 
 [[package]]

@@ -9,8 +9,8 @@ local CharacterAnimator = {}
 
 local PLAYER = Players.LocalPlayer
 
-local RIGHT_HAND_ANIMATION_ID = 125153135180187
-local LEFT_HAND_ANIMATION_ID = 133289954566083
+local RIGHT_HAND_ANIMATION_ID = 124714956055404
+local LEFT_HAND_ANIMATION_ID = 105492048233640
 
 local tracks: { [Humanoid]: { [string]: AnimationTrack } } = {}
 
@@ -50,6 +50,7 @@ function CharacterAnimator:HoldRightHand(): ()
 		return
 	end
 
+	print(getTrack(humanoid, "RightHand", RIGHT_HAND_ANIMATION_ID):Play())
 	getTrack(humanoid, "RightHand", RIGHT_HAND_ANIMATION_ID):Play()
 end
 
@@ -63,7 +64,7 @@ function CharacterAnimator:HoldLeftHand(): ()
 	if not humanoid then
 		return
 	end
-
+	print(LEFT_HAND_ANIMATION_ID)
 	getTrack(humanoid, "LeftHand", LEFT_HAND_ANIMATION_ID):Play()
 end
 
