@@ -1,0 +1,4 @@
+interface:
+  display_name: "Roblox Timed Player Events"
+  short_description: "Per-player timers, offers, and Roblox events"
+  default_prompt: "Use $roblox-timed-player-events to implement a server-authoritative timed player offer in this Roblox project."

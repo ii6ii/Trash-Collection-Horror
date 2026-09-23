@@ -1,0 +1,176 @@
+--!strict
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+
+local CameraController = require(ServerScriptService.Server.Core.Camera.CameraController)
+local InventoryTypes = require(ReplicatedStorage.Shared.Types.InventoryTypes)
+local MovementConfig = require(ReplicatedStorage.Shared.Config.MovementConfig)
+
+local BASE_WALK_SPEED = MovementConfig.BaseWalkSpeed
+local SPEED_LOSS_PER_WEIGHT = MovementConfig.SpeedLossPerWeight
+local SPRINT_MULTIPLIER = MovementConfig.SprintMultiplier
+local BIN_SPEED_MULTIPLIER = MovementConfig.BinSpeedMultiplier
+
+local MAX_SPRINT_WEIGHT = MovementConfig.MaxSprintWeight
+local CAMERA_SHAKE_WEIGHT = MovementConfig.CameraShakeWeight
+
+local DISABLED_WALK_SPEED = MovementConfig.DisabledWalkSpeed
+
+local Movement = {}
+Movement.__index = Movement
+
+export type Movement = typeof(setmetatable(
+	{} :: {
+		player: Player,
+		baseSpeed: number,
+		totalWeight: number,
+		isSprinting: boolean,
+		isMovementEnabled: boolean,
+		hasBin: boolean,
+		isBinOpen: boolean,
+	},
+	Movement
+))
+
+function Movement.new(player: Player): Movement
+	return setmetatable({
+		player = player,
+		baseSpeed = BASE_WALK_SPEED,
+		totalWeight = 0,
+		isSprinting = false,
+		isMovementEnabled = true,
+		hasBin = false,
+		isBinOpen = false,
+	}, Movement)
+end
+
+function Movement.updateCameraShake(self: Movement): ()
+	if self.isBinOpen then
+		CameraController.stopShake(self.player)
+		return
+	end
+
+	if self.totalWeight >= CAMERA_SHAKE_WEIGHT then
+		CameraController.startShake(self.player)
+	else
+		CameraController.stopShake(self.player)
+	end
+end
+
+function Movement.updateWeight(self: Movement, items: { InventoryTypes.Item }): ()
+	local totalWeight = 0
+
+	for _, item in items do
+		totalWeight += item:getItemData().weight
+	end
+
+	self.totalWeight = totalWeight
+	self.baseSpeed = BASE_WALK_SPEED * math.max(1 - totalWeight * SPEED_LOSS_PER_WEIGHT, 0)
+
+	if totalWeight > MAX_SPRINT_WEIGHT then
+		self.isSprinting = false
+	end
+
+	self:updateCameraShake()
+	self:updateSpeed()
+end
+
+function Movement.updateSpeed(self: Movement): ()
+	local character = self.player.Character
+	if not character then
+		return
+	end
+
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return
+	end
+
+	if not self.isMovementEnabled then
+		humanoid.WalkSpeed = DISABLED_WALK_SPEED
+		return
+	end
+
+	local speed = self.baseSpeed
+
+	if self.isSprinting then
+		speed *= SPRINT_MULTIPLIER
+	end
+
+	if self.hasBin then
+		speed *= BIN_SPEED_MULTIPLIER
+	end
+
+	humanoid.WalkSpeed = speed
+end
+
+function Movement.setBin(self: Movement, hasBin: boolean): ()
+	self.hasBin = hasBin
+
+	if hasBin then
+		self.isSprinting = false
+	end
+
+	self:updateSpeed()
+end
+
+function Movement.setBinOpen(self: Movement, isOpen: boolean): ()
+	self.isBinOpen = isOpen
+
+	self:updateCameraShake()
+end
+
+function Movement.disableMovement(self: Movement): ()
+	if not self.isMovementEnabled then
+		return
+	end
+
+	self.isMovementEnabled = false
+	self.isSprinting = false
+
+	self:updateSpeed()
+end
+
+function Movement.enableMovement(self: Movement): ()
+	if self.isMovementEnabled then
+		return
+	end
+
+	self.isMovementEnabled = true
+
+	self:updateSpeed()
+end
+
+function Movement.startSprint(self: Movement): ()
+	if not self.isMovementEnabled then
+		return
+	end
+
+	-- С Bin спринт запрещён.
+	if self.hasBin then
+		return
+	end
+
+	if self.totalWeight > MAX_SPRINT_WEIGHT then
+		return
+	end
+
+	if self.isSprinting then
+		return
+	end
+
+	self.isSprinting = true
+	self:updateSpeed()
+end
+
+function Movement.stopSprint(self: Movement): ()
+	if not self.isSprinting then
+		return
+	end
+
+	self.isSprinting = false
+	self:updateSpeed()
+end
+
+return Movement

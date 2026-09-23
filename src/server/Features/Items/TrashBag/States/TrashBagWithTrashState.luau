@@ -3,10 +3,10 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local InputSystemTypes = require(ReplicatedStorage.Shared.InputSystem.InputSystemTypes)
-local InventoryTypes = require(ReplicatedStorage.Shared.Inventory.InventoryTypes)
-local BaseTrashBagState = require(ServerScriptService.Server.UsableItems.TrashBag.States.BaseTrashBagState)
-local TrashBagTypes = require(ServerScriptService.Server.UsableItems.TrashBag.TrashBagTypes)
+local InputSystemTypes = require(ReplicatedStorage.Shared.Types.InputSystemTypes)
+local InventoryTypes = require(ReplicatedStorage.Shared.Types.InventoryTypes)
+local BaseTrashBagState = require(ServerScriptService.Server.Features.Items.TrashBag.States.BaseTrashBagState)
+local TrashBagTypes = require(ServerScriptService.Server.Features.Items.TrashBag.TrashBagTypes)
 
 local TrashBagWithTrashState = {}
 TrashBagWithTrashState.__index = TrashBagWithTrashState

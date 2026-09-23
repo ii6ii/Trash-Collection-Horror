@@ -1,0 +1,4 @@
+interface:
+  display_name: "Roblox Weighted Random"
+  short_description: "Server-authoritative weighted selection for Roblox"
+  default_prompt: "Use $roblox-weighted-random to design and test a server-authoritative weighted selector with dynamic weights."

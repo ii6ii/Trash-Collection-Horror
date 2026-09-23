@@ -1,0 +1,4 @@
+interface:
+  display_name: "Roblox Stateful World Offers"
+  short_description: "Safe offers on changing Roblox world slots"
+  default_prompt: "Use $roblox-stateful-world-offers to implement a server-authoritative offer on changing Roblox world slots."
