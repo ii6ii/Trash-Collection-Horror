@@ -1,4 +1,5 @@
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local CharacterAnimator = require(script.Core.Animator.CharacterAnimator)
@@ -17,6 +18,8 @@ local TrashBag = require(script.Features.Items.TrashBag.TrashBag)
 local TrashBagGiver = require(script.Features.Items.TrashBag.TrashBagGiver)
 local TrashBagTyer = require(script.Features.Items.TrashBag.TrashBagTyer)
 
+local TwoHandedGripFitter = require(ReplicatedStorage.Shared.Grip.TwoHandedGripFitter)
+
 local TrashInitializer = require(script.World.TrashInitializer)
 
 local RunTests = require(script.Tests.RunTests)
@@ -30,6 +33,7 @@ SoundService.init()
 BinController.init()
 BinService.init()
 Inventory.init()
+TwoHandedGripFitter.init()
 TrashBagTyer.init()
 
 TrashInitializer.init()
